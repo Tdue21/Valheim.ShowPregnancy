@@ -37,7 +37,7 @@ namespace DoveSoft.Valheim.ShowPregnancy
     [HarmonyPatch]
     public class ValheimMod : BaseUnityPlugin
     {
-        public const string ModVersion = "1.0.0";
+        public const string ModVersion = "1.0.1";
         private const string ModUid = "dovesoft.valheim.showpregnancy";
 
         private static ConfigEntry<bool> _enableMod;
@@ -51,6 +51,7 @@ namespace DoveSoft.Valheim.ShowPregnancy
             _showPregnancy         = Config.Bind("2 - General", "Show Pregnancy",          true,  "Show or hide pregnancy status.");
             _showPregnancyProgress = Config.Bind("2 - General", "Show Pregnancy Progress", false, "Show or hide pregnancy progress in percent.");
             _showLovePoints        = Config.Bind("2 - General", "Show Love points",        false, "Show or hide love points.")       ;
+            var nexusID            = Config.Bind("General", "NexusID", 1787, "Nexus mod ID for updates");
 
             if (!_enableMod.Value)
             {
@@ -73,6 +74,11 @@ namespace DoveSoft.Valheim.ShowPregnancy
             }
 
             if (!validNames.Contains(__instance.name))
+            {
+                return hoverText;
+            }
+
+            if (!__instance.IsTamed())
             {
                 return hoverText;
             }
