@@ -37,21 +37,23 @@ namespace DoveSoft.Valheim.ShowPregnancy
     [HarmonyPatch]
     public class ValheimMod : BaseUnityPlugin
     {
-        public const string ModVersion = "1.0.1";
+        public const string ModVersion = "1.0.2";
         private const string ModUid = "dovesoft.valheim.showpregnancy";
 
         private static ConfigEntry<bool> _enableMod;
         private static ConfigEntry<bool> _showPregnancy;
         private static ConfigEntry<bool> _showPregnancyProgress;
         private static ConfigEntry<bool> _showLovePoints;
+        private static ConfigEntry<string> _customAnimals;
 
         private void Awake()
         {
-            _enableMod             = Config.Bind("1 - Global",  "Enable Mod",              true,  "Enable or disable this mod.");
-            _showPregnancy         = Config.Bind("2 - General", "Show Pregnancy",          true,  "Show or hide pregnancy status.");
-            _showPregnancyProgress = Config.Bind("2 - General", "Show Pregnancy Progress", false, "Show or hide pregnancy progress in percent.");
-            _showLovePoints        = Config.Bind("2 - General", "Show Love points",        false, "Show or hide love points.")       ;
-            var nexusID            = Config.Bind("General", "NexusID", 1787, "Nexus mod ID for updates");
+            _enableMod = Config.Bind("Global", "Enable Mod", true,  "Enable or disable this mod.");
+            _showPregnancy = Config.Bind("General", "Show Pregnancy", true,  "Show or hide pregnancy status.");
+            _showPregnancyProgress = Config.Bind("General", "Show Pregnancy Progress", false, "Show or hide pregnancy progress in percent.");
+            _showLovePoints = Config.Bind("General", "Show Love points", false, "Show or hide love points.");
+            _customAnimals = Config.Bind("General", "Custom Animals", "", "Add custom animals prefab ('<prefabName>(Clone)' and separated by ,) [i.e rae_OdinHorse(Clone),CustomAnimal(Clone)]");
+            var nexusID = Config.Bind("General", "NexusID", 1787, "Nexus mod ID for updates");
 
             if (!_enableMod.Value)
             {
@@ -65,7 +67,11 @@ namespace DoveSoft.Valheim.ShowPregnancy
         [HarmonyPatch(typeof(Character), nameof(Character.GetHoverText))]
         public static string CharacterShowPregnancyText(string __result, Character __instance)
         {
-            string[] validNames = { "Lox(Clone)", "Boar(Clone)", "Wolf(Clone)" };
+            string[] vanillaAnimals = { "Lox(Clone)", "Boar(Clone)", "Wolf(Clone)" };
+            string[] customAnimals = _customAnimals.Value.Split(',');
+            string[] breedableAnimals = new string[vanillaAnimals.Length + customAnimals.Length];
+            vanillaAnimals.CopyTo(breedableAnimals, 0);
+            customAnimals.CopyTo(breedableAnimals, vanillaAnimals.Length);
 
             var hoverText = (string)__result.Clone();
             if (__instance == null)
@@ -73,7 +79,7 @@ namespace DoveSoft.Valheim.ShowPregnancy
                 return hoverText;
             }
 
-            if (!validNames.Contains(__instance.name))
+            if (!breedableAnimals.Contains(__instance.name))
             {
                 return hoverText;
             }
