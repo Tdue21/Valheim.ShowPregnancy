@@ -27,33 +27,39 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using UnityEngine;
 
 // ReSharper disable InconsistentNaming
 
 namespace DoveSoft.Valheim.ShowPregnancy
 {
-    [BepInPlugin(ModUid, "Show Pregnancy", ModVersion)]
+    [BepInPlugin(ModUid, ModDescription, ModVersion)]
     [HarmonyPatch]
     public class ValheimMod : BaseUnityPlugin
     {
-        public const string ModVersion = "1.0.2";
-        private const string ModUid = "dovesoft.valheim.showpregnancy";
+        internal const string ModVersion = "1.0.2";
+        internal const string ModDescription = "Show Pregnancy";
+        internal const string ModUid = "dovesoft.valheim.showpregnancy";
 
         private static ConfigEntry<bool> _enableMod;
         private static ConfigEntry<bool> _showPregnancy;
         private static ConfigEntry<bool> _showPregnancyProgress;
         private static ConfigEntry<bool> _showLovePoints;
         private static ConfigEntry<string> _customAnimals;
+        private static ConfigEntry<bool> _showGrowth;
+
+        private static readonly string[] VanillaAnimals = { "Lox(Clone)", "Boar(Clone)", "Wolf(Clone)" };
+        private static readonly string[] VanillaBabies = { "Lox_Calf(Clone)", "Boar_Piggy(Clone)", "Wolf_Cub(Clone)" };
 
         private void Awake()
         {
-            _enableMod = Config.Bind("Global", "Enable Mod", true,  "Enable or disable this mod.");
-            _showPregnancy = Config.Bind("General", "Show Pregnancy", true,  "Show or hide pregnancy status.");
+            _enableMod             = Config.Bind("Global" , "Enable Mod"             , true,  "Enable or disable this mod.");
+            _showPregnancy         = Config.Bind("General", "Show Pregnancy"         , true,  "Show or hide pregnancy status.");
             _showPregnancyProgress = Config.Bind("General", "Show Pregnancy Progress", false, "Show or hide pregnancy progress in percent.");
-            _showLovePoints = Config.Bind("General", "Show Love points", false, "Show or hide love points.");
-            _customAnimals = Config.Bind("General", "Custom Animals", "", "Add custom animals prefab ('<prefabName>(Clone)' and separated by ,) [i.e rae_OdinHorse(Clone),CustomAnimal(Clone)]");
-            var nexusID = Config.Bind("General", "NexusID", 1787, "Nexus mod ID for updates");
+            _showLovePoints        = Config.Bind("General", "Show Love points"       , false, "Show or hide love points.");
+            _customAnimals         = Config.Bind("General", "Custom Animals"         , ""   , "Add custom animals prefab ('<prefabName>(Clone)' and separated by ,) [i.e rae_OdinHorse(Clone),CustomAnimal(Clone)]");
+            _showGrowth            = Config.Bind("General", "Show Baby Growth"       , true,  "Show or hide growth percentage of babies.");
+
+            Config.Bind("General", "NexusID", 1787, "Nexus mod ID for updates");
 
             if (!_enableMod.Value)
             {
@@ -67,24 +73,33 @@ namespace DoveSoft.Valheim.ShowPregnancy
         [HarmonyPatch(typeof(Character), nameof(Character.GetHoverText))]
         public static string CharacterShowPregnancyText(string __result, Character __instance)
         {
-            string[] vanillaAnimals = { "Lox(Clone)", "Boar(Clone)", "Wolf(Clone)" };
-            string[] customAnimals = _customAnimals.Value.Split(',');
-            string[] breedableAnimals = new string[vanillaAnimals.Length + customAnimals.Length];
-            vanillaAnimals.CopyTo(breedableAnimals, 0);
-            customAnimals.CopyTo(breedableAnimals, vanillaAnimals.Length);
-
+            var customAnimals = _customAnimals.Value.Split(',');
+            var breedableAnimals = VanillaAnimals.Concat(customAnimals).ToArray();
             var hoverText = (string)__result.Clone();
+
             if (__instance == null)
             {
                 return hoverText;
             }
 
-            if (!breedableAnimals.Contains(__instance.name))
+            var growup = __instance.GetGrowup();
+            if (growup != null && _showGrowth.Value)
             {
+                var spawned = growup.GetComponent<BaseAI>().GetTimeSinceSpawned().TotalSeconds;
+                var total = growup.m_growTime;
+
+                var grown = (spawned / total) * 100;
+
+#if DEBUG
+                UnityEngine.Debug.Log($"Looking at: {__instance.name} - Grown = {grown} - HoverText = {hoverText} .. ");
+#endif
+
+                hoverText += $"{Math.Round(grown, 0)}% grown";
                 return hoverText;
             }
 
-            if (!__instance.IsTamed())
+
+            if (!breedableAnimals.Contains(__instance.name) || !__instance.IsTamed())
             {
                 return hoverText;
             }
@@ -103,7 +118,7 @@ namespace DoveSoft.Valheim.ShowPregnancy
                                                             ?  $", Pregnant ({percentage}%) )"
                                                             : ", Pregnant )");
 #if DEBUG
-                    Debug.Log($"Show Pregnancy: Duration={duration}s; Time Gone={timeGone}s; Percentage={percentage:N0}%");
+                    UnityEngine.Debug.Log($"Show Pregnancy: {__instance.name} Duration={duration}s; Time Gone={timeGone}s; Percentage={percentage:N0}%");
 #endif
                 }
             }
@@ -112,7 +127,6 @@ namespace DoveSoft.Valheim.ShowPregnancy
             {
                 hoverText += Environment.NewLine + $"Lovepoints: {__instance.GetLovePoints()} of {__instance.GetRequiredLovePoints()}";
             }
-
             return hoverText;
         }
     }

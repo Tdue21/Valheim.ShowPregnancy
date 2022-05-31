@@ -39,6 +39,13 @@ namespace DoveSoft.Valheim.ShowPregnancy
                            .GetComponent<Procreation>();
         }
 
+        public static Growup GetGrowup(this Character instance)
+        {
+            return Traverse.Create(instance)
+                .Field("m_baseAI").GetValue<BaseAI>()?
+                .GetComponent<Growup>();
+        }
+
         private static ZNetView GetZNetView(this Character instance)
         {
             return Traverse.Create(instance).Field("m_nview").GetValue<ZNetView>();

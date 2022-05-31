@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;using DoveSoft.Valheim.ShowPregnancy;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Valheim.PregnancyHelper")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription(ValheimMod.ModDescription)]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Valheim.PregnancyHelper")]
